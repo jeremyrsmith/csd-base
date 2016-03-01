@@ -2,9 +2,8 @@ package csdbase.descriptor.parameter
 
 import java.net.{URISyntaxException, URI}
 
-import io.circe._, io.circe.generic.semiauto._
+import io.circe._, io.circe.generic.auto._
 import cats.data.Xor, Xor._
-import ParameterType.types
 import shapeless._
 
 import EncoderInstances._
@@ -19,10 +18,9 @@ sealed abstract class Parameter[T : Encoder : Decoder](
   default: Option[T],
   configurableInWizard: Option[Boolean],
   sensitive: Option[Boolean],
-  `type`: ParameterType[T])
+  `type`: Parameter.ParameterCoproduct)
 
 object Parameter {
-  import ParameterType.types._
 
   type ParameterCoproduct =
     BooleanParameter :+:
@@ -36,24 +34,26 @@ object Parameter {
       StringArrayParameter :+:
       StringEnumParameter :+:
       UriParameter :+:
-      UriArrayParameter
+      UriArrayParameter :+: CNil
 
-  implicit val AnyParameterDecoder : Decoder[ParameterCoproduct] = Decoder.instance {
-    cursor => cursor.downField("type").as[String] flatMap {
-      case boolean.TypeName => boolean.decodeCP(cursor)
-      case double.TypeName => double.decodeCP(cursor)
-      case long.TypeName => long.decodeCP(cursor)
-      case memory.TypeName => memory.decodeCP(cursor)
-      case port.TypeName => port.decodeCP(cursor)
-      case string_enum.TypeName => string_enum.decodeCP(cursor)
-      case string.TypeName => string.decodeCP(cursor)
-      case password.TypeName => password.decodeCP(cursor)
-      case string_array.TypeName => string_array.decodeCP(cursor)
-      case path.TypeName => path.decodeCP(cursor)
-      case path_array.TypeName => path_array.decodeCP(cursor)
-      case uri.TypeName => uri.decodeCP(cursor)
-      case uri_array.TypeName => uri_array.decodeCP(cursor)
-      case other => Left(DecodingFailure(s"Invalid parameter type: $other", cursor.history))
+  object ParameterCoproduct {
+    implicit val AnyParameterDecoder: Decoder[ParameterCoproduct] = Decoder.instance {
+      cursor => cursor.downField("type").as[String] flatMap {
+        case "boolean" => cursor.as[BooleanParameter] map (Coproduct[ParameterCoproduct](_))
+        case "double" => cursor.as[DoubleParameter] map (Coproduct[ParameterCoproduct](_))
+        case "long" => cursor.as[LongParameter] map (Coproduct[ParameterCoproduct](_))
+        case "memory" => cursor.as[MemoryParameter] map (Coproduct[ParameterCoproduct](_))
+        case "port" => cursor.as[PortParameter] map (Coproduct[ParameterCoproduct](_))
+        case "string_enum" => cursor.as[StringEnumParameter] map (Coproduct[ParameterCoproduct](_))
+        case "string" => cursor.as[StringParameter] map (Coproduct[ParameterCoproduct](_))
+        case "password" => cursor.as[PasswordParameter] map (Coproduct[ParameterCoproduct](_))
+        case "string_array" => cursor.as[StringArrayParameter] map (Coproduct[ParameterCoproduct](_))
+        case "path" => cursor.as[PathParameter] map (Coproduct[ParameterCoproduct](_))
+        case "path_array" => cursor.as[PathArrayParameter] map (Coproduct[ParameterCoproduct](_))
+        case "uri" => cursor.as[UriParameter] map (Coproduct[ParameterCoproduct](_))
+        case "uri_array" => cursor.as[UriArrayParameter] map (Coproduct[ParameterCoproduct](_))
+        case other => Left(DecodingFailure(s"Invalid parameter type: $other", cursor.history))
+      }
     }
   }
 

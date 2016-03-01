@@ -2,6 +2,7 @@ package csdbase.descriptor.parameter
 
 import org.scalatest.FlatSpec
 import io.circe._, io.circe.parser.parse
+import Parameter.ParameterCoproduct
 
 class ParameterDecodingSpec extends FlatSpec {
 
@@ -20,7 +21,7 @@ class ParameterDecodingSpec extends FlatSpec {
       """.stripMargin
 
     val result = parse(json) flatMap {
-      parsed => parsed.as[Parameter[_]]
+      parsed => parsed.as[ParameterCoproduct]
     }
 
     assert(result.isRight)
